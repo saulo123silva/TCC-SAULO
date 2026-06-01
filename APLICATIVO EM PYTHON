@@ -1,0 +1,168 @@
+import sys
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QComboBox
+from matplotlib.animation import FuncAnimation
+from PyQt5 import QtGui, QtWidgets
+
+
+# Define os valores dos parâmetros da equação
+L = 1 # comprimento da corda
+T = 1 # tempo total
+c = 1 # velocidade da onda
+Nx = 1000 # número de pontos na corda
+Nt = 1000 # número de pontos no tempo
+
+# Passos espaciais e temporais
+dx = L / (Nx - 1)
+dt = T / (Nt - 1)
+C = c*dt/dx
+
+# Inicialização
+u = np.zeros((Nx, Nt)) # matriz com posições da corda em relação ao tempo
+x = np.linspace(0, L, Nx) # eixo x
+t = np.linspace(0, T, Nt) # eixo t
+
+
+
+class MyApp(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('TCC SAULO')
+        self.setWindowIcon(QtGui.QIcon('icone.webp'))
+        self.setGeometry(100, 100, 400, 360)
+
+        # Cria os widgets
+        label = QLabel("Escolha a condição inicial:")
+        font = label.font()
+        font.setPointSize(18)
+        label.setFont(font)
+
+        self.comboBox = QComboBox()
+        self.comboBox.setFont(QtGui.QFont("Arial", 16)) # Define a fonte do combobox
+        self.comboBox.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding) # Define a política de tamanho do combobox
+        self.comboBox.setMinimumSize(200, 25) # Define o tamanho mínimo do combobox
+        self.comboBox.setMaximumSize(400, 50) # Define o tamanho máximo do combobox
+        self.comboBox.addItem("Função Seno")
+        self.comboBox.addItem("Função Seno e Cosseno")
+        self.comboBox.addItem("Função Gaussiana")
+
+        # Adiciona um botão para gerar o gráfico
+        self.button = QPushButton("Gerar gráfico")
+
+        self.button.setFont(QtGui.QFont("Arial", 16)) # Define a fonte do botão
+        self.button.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding) # Define a política de tamanho do botão
+        self.button.setMinimumSize(200, 25) # Define o tamanho mínimo do botão
+        self.button.setMaximumSize(400, 50) # Define o tamanho máximo do botão
+        self.button.clicked.connect(self.gerar_grafico)
+
+        # Adiciona um botão para gerar a animação
+        self.button_animacao = QPushButton("Gerar animação")
+        self.button_animacao.setFont(QtGui.QFont("Arial", 16)) # Define a fonte do botão
+        self.button_animacao.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding) # Define a política de tamanho do botão
+        self.button_animacao.setMinimumSize(200, 25) # Define o tamanho mínimo do botão
+        self.button_animacao.setMaximumSize(400, 50) # Define o tamanho máximo do botão
+        self.button_animacao.clicked.connect(self.gerar_animacao)
+
+
+        # Cria o layout e adiciona os widgets
+        vbox = QVBoxLayout()
+        vbox.addWidget(label)
+        vbox.addWidget(self.comboBox)
+        vbox.addWidget(self.button)
+        vbox.addWidget(self.button_animacao)
+        self.setLayout(vbox)
+
+
+
+        # Exibe a janela
+        self.show()
+
+
+    def gerar_grafico(self):
+        # Condições iniciais
+        opcao = self.comboBox.currentIndex()
+        if opcao == 0:
+            u[:, 0] = np.sin(np.pi * x / L)
+            u[:, 1] = u[:, 0] + dt * np.sin(np.pi * x / L)
+        elif opcao == 1:
+            u[:, 0] = 1 * np.sin(np.pi *x/L) * np.cos(2*np.pi*x/L)
+            u[:, 1] = u[:, 0] + dt * 1 * np.sin(np.pi *x/L) * np.cos(2*np.pi*x/L)
+        else:
+            u[:, 0] = np.exp(-(x - L/2)**2 / (L/10)**2)
+            u[:, 1] = u[:, 0] + dt * np.exp(-(x - L/2)**2 / (L/10)**2)
+
+        # Loop principal
+        for j in range(1, Nt - 1):
+            for i in range(1, Nx - 1):
+                u[i, j+1] = (C**2)*(u[i+1, j]- 2*u[i, j] + u[i-1, j]) + 2*u[i,j]-u[i, j-1]
+
+        # Plota o gráfico da função
+        fig, ax = plt.subplots(figsize=(12,9))
+        colors = ['#9e0142', '#d53e4f', '#f46d43', '#fdae61', '#fee08b', '#e6f598', '#abdda4', '#66c2a5', '#3288bd', '#5e4fa2']
+        ax.set_xlabel('x',fontsize=19)
+        ax.set_ylabel('u(x,t)', fontsize=19)
+
+
+        #Plota 10 gráficos de cores diferentes
+        for i in range(10):
+            ax.plot(x, u[:, i * 100], color=colors[i], label=f'tempo {i+1}')
+        ax.legend()
+
+        # Exibe o gráfico
+
+        plt.show()
+
+    def gerar_animacao(self):
+        global u
+
+        # Condições iniciais
+        opcao = self.comboBox.currentIndex()
+        if opcao == 0:
+            u[:, 0] = np.sin(np.pi * x / L)
+            u[:, 1] = u[:, 0] + dt * np.sin(np.pi * x / L)
+        elif opcao == 1:
+            u[:, 0] = 1 * np.sin(np.pi *x/L) * np.cos(2*np.pi*x/L)
+            u[:, 1] = u[:, 0] + dt * 1 * np.sin(np.pi *x/L) * np.cos(2*np.pi*x/L)
+        else:
+            u[:, 0] = np.exp(-(x - L/2)**2 / (L/10)**2)
+            u[:, 1] = u[:, 0] + dt * np.exp(-(x - L/2)**2 / (L/10)**2)
+
+
+        # Inicializa o gráfico
+        C = c*dt/dx
+        fig = plt.figure(figsize=(12, 9))
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('x', fontsize=19)
+
+        ax.set_ylabel('u(x,t)', fontsize=19)
+        ax.set_ylim(-1.3, 1.3)
+        line, = ax.plot(x, u[:, 0], color='b', label='Corda')
+
+        # Define a animação
+        def update(frame):
+            tempo_atual = frame * dt
+            if frame in range(1, Nt - 1):
+                for i in range(1, Nx - 1):
+                    u[i, frame+1] = (C**2)*(u[i+1, frame]- 2*u[i, frame] + u[i-1, frame]) + 2*u[i,frame]-u[i, frame-1]
+
+            ax.set_title(f'Tempo: {tempo_atual:.2f}')
+            fig.canvas.draw()
+            line.set_ydata(u[:, frame])
+            return line,
+
+        anim = matplotlib.animation.FuncAnimation(fig, update, frames=np.arange(1, Nt), interval=10, blit=True)
+        self.anim = anim
+        self.anim.event_source.start()
+        # Exibe a animação
+        return anim
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = MyApp()
+    sys.exit(app.exec_())
